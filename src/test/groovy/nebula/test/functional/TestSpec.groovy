@@ -21,6 +21,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import spock.lang.Ignore
+import spock.lang.Issue
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -88,6 +90,38 @@ class TestSpec extends Specification {
         'in-process' | false
         'forked'     | true
     }
+
+    @Ignore
+    @Issue("https://github.com/nebula-plugins/nebula-test/issues/29")
+    def "println included in standardOutput"() {
+        given:
+        GradleRunner runner = GradleRunnerFactory.createTooling(false)
+        tmp.newFile("build.gradle") << """
+            apply plugin: ${SomePlugin.name}
+        """
+
+        when:
+        ExecutionResult result = runner.run(tmp.root, ["print"])
+
+        then:
+        result.standardOutput.contains("Printed (stdout)")
+    }
+
+    @Ignore
+    @Issue("https://github.com/nebula-plugins/nebula-test/issues/29")
+    def "err.println included in standardError"() {
+        given:
+        GradleRunner runner = GradleRunnerFactory.createTooling(false)
+        tmp.newFile("build.gradle") << """
+            apply plugin: ${SomePlugin.name}
+        """
+
+        when:
+        ExecutionResult result = runner.run(tmp.root, ["print"])
+
+        then:
+        result.standardError.contains("Printed (stderr)")
+    }
 }
 
 class SomePlugin implements Plugin<Project> {
@@ -111,6 +145,13 @@ class SomePlugin implements Plugin<Project> {
                 project.hasProperty('skip') ? !project.properties['skip'].toBoolean() : true
             }
             doLast { project.logger.quiet 'Did it!' }
+        }
+
+        project.task("print") {
+            doLast {
+                println "Printed (stdout)"
+                System.err.println 'Printed (stderr)'
+            }
         }
     }
 }
