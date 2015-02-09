@@ -21,7 +21,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
-import spock.lang.Ignore
 import spock.lang.Issue
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -91,8 +90,7 @@ class TestSpec extends Specification {
         'forked'     | true
     }
 
-    @Ignore
-    @Issue("https://github.com/nebula-plugins/nebula-test/issues/29")
+    @Issue("https://github.com/nebula-plugins/nebula-test/issues/29")   //fails
     def "println included in standardOutput"() {
         given:
         GradleRunner runner = GradleRunnerFactory.createTooling(false)
@@ -107,8 +105,7 @@ class TestSpec extends Specification {
         result.standardOutput.contains("Printed (stdout)")
     }
 
-    @Ignore
-    @Issue("https://github.com/nebula-plugins/nebula-test/issues/29")
+    @Issue("https://github.com/nebula-plugins/nebula-test/issues/29")   //fails
     def "err.println included in standardError"() {
         given:
         GradleRunner runner = GradleRunnerFactory.createTooling(false)
@@ -121,6 +118,37 @@ class TestSpec extends Specification {
 
         then:
         result.standardError.contains("Printed (stderr)")
+    }
+
+    @Issue("https://github.com/nebula-plugins/nebula-test/issues/29")
+    def "stdout redirected to WARN included in standardOutput"() {  //fails
+        given:
+        GradleRunner runner = GradleRunnerFactory.createTooling(false)
+        tmp.newFile("build.gradle") << """
+            logging.captureStandardOutput LogLevel.WARN
+            apply plugin: ${SomePlugin.name}
+        """
+
+        when:
+        ExecutionResult result = runner.run(tmp.root, ["print"])
+
+        then:
+        result.standardOutput.contains("Printed (stdout)")
+    }
+
+    def "stdout redirected to ignored logging level not included in standardOutput"() { //works accidentally only because stdout is ignored
+        given:
+        GradleRunner runner = GradleRunnerFactory.createTooling(false)
+        tmp.newFile("build.gradle") << """
+            logging.captureStandardOutput LogLevel.TRACE
+            apply plugin: ${SomePlugin.name}
+        """
+
+        when:
+        ExecutionResult result = runner.run(tmp.root, ["print"])
+
+        then:
+        !result.standardOutput.contains("Printed (stdout)")
     }
 }
 
